@@ -5,6 +5,7 @@ import 'attendance_logs_screen.dart'; // Import Attendance Logs Screen
 import 'login_screen.dart'; // Import for logout navigation
 import 'nfc_scanner_screen.dart'; // <-- CORRECTED IMPORT
 import 'manage_volunteers_screen.dart';
+import 'create_announcement_screen.dart';
 import '../theme/app_theme.dart';
 
 class AdminHomeScreen extends StatelessWidget {
@@ -130,7 +131,7 @@ class AdminHomeScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const NfcScannerPage()),
+                        MaterialPageRoute(builder: (context) => NfcScannerPage()),
                       );
                     },
                     delay: 300,
@@ -153,6 +154,23 @@ class AdminHomeScreen extends StatelessWidget {
                       );
                     },
                     delay: 400,
+                  ),
+                  _buildPremiumActionCard(
+                    context,
+                    title: "Announce",
+                    subtitle: "Post Events or Needs",
+                    icon: Icons.campaign_rounded,
+                    gradientColors: [Colors.orange, Colors.deepOrange],
+                    onTap: () {
+                       Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => CreateAnnouncementScreen(
+                          adminRole: role,
+                          adminCampusId: adminCampusId,
+                        )),
+                      );
+                    },
+                    delay: 450,
                   ),
                   _buildPremiumActionCard(
                     context,

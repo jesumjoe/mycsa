@@ -89,22 +89,50 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
 
     if (logs.isEmpty) return [];
 
-    final regNumbers = logs.map((log) => log['registerNumber'] as String).toSet().toList();
+    // 1. Collect all unique UIDs (both Attendees and Admins)
+    final attendeeRegs = logs.map((log) => log['registerNumber'] as String).toSet().toList();
+    final adminUids = logs.map((log) => log['scannedByUID'] as String?).where((uid) => uid != null).toSet().toList();
 
-    final usersResponse = await supabase
+    // 2. Fetch Attendees (by Register Number)
+    final attendeeResponse = await supabase
         .from('users')
         .select('registerNumber, name')
-        .filter('registerNumber', 'in', regNumbers);
+        .filter('registerNumber', 'in', attendeeRegs);
     
-    final usersList = List<Map<String, dynamic>>.from(usersResponse);
+    // 3. Fetch Admins (by UUID)
+    List<Map<String, dynamic>> adminResponse = [];
+    if (adminUids.isNotEmpty) {
+      final res = await supabase
+          .from('users')
+          .select('id, name, role')
+          .filter('id', 'in', adminUids);
+      adminResponse = List<Map<String, dynamic>>.from(res);
+    }
     
-    final userMap = {
-      for (var user in usersList) user['registerNumber'] as String: user['name'] as String
+    // 4. Create Maps
+    final attendeeMap = {
+      for (var user in List<Map<String, dynamic>>.from(attendeeResponse)) 
+        user['registerNumber'] as String: user['name'] as String
     };
 
+    final adminMap = {
+      for (var admin in adminResponse) 
+        admin['id'] as String: {'name': admin['name'], 'role': admin['role']}
+    };
+
+    // 5. Enrich Logs
     for (var log in logs) {
       final regNo = log['registerNumber'] as String;
-      log['userName'] = userMap[regNo] ?? 'Unknown User';
+      final adminId = log['scannedByUID'] as String?;
+      
+      log['userName'] = attendeeMap[regNo] ?? 'Unknown User';
+      
+      if (adminId != null && adminMap.containsKey(adminId)) {
+        log['adminName'] = adminMap[adminId]!['name'];
+        log['adminRole'] = adminMap[adminId]!['role'];
+      } else {
+        log['adminName'] = 'Unknown Admin';
+      }
     }
 
     return logs;
@@ -225,6 +253,7 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
                     final scanType = (log['scanType'] as String? ?? 'N/A').toUpperCase();
                     final timestamp = log['timestamp'] as String?;
                     final userName = log['userName'] as String? ?? 'Unknown User';
+                    final adminName = log['adminName'] as String?;
                     
                     final isPunchIn = scanType == 'IN';
                     // Use theme colors for chips
@@ -232,52 +261,83 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
                     final chipTextColor = isPunchIn ? Colors.tealAccent : Colors.orangeAccent;
 
                     return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      color: AppTheme.primaryNavy, // Dark Card
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Row(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Icon Avatar
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: chipColor,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                isPunchIn ? Icons.login : Icons.logout,
-                                color: chipTextColor,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            // Details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.white)),
-                                  const SizedBox(height: 4),
-                                  Text(registerNumber, style: TextStyle(color: AppTheme.lightBlue.withOpacity(0.7), fontSize: 12)),
-                                ],
-                              ),
-                            ),
-                            // Access & Time
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Icon Avatar
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
                                     color: chipColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: chipTextColor.withOpacity(0.3), width: 1),
+                                    shape: BoxShape.circle,
                                   ),
-                                  child: Text(scanType, style: TextStyle(color: chipTextColor, fontWeight: FontWeight.bold, fontSize: 10)),
+                                  child: Icon(
+                                    isPunchIn ? Icons.login : Icons.logout,
+                                    color: chipTextColor,
+                                    size: 20,
+                                  ),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(_formatTimestamp(timestamp), style: TextStyle(color: AppTheme.white.withOpacity(0.6), fontSize: 11)),
+                                const SizedBox(width: 16),
+                                // Details
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.white)),
+                                      const SizedBox(height: 4),
+                                      Text(registerNumber, style: TextStyle(color: AppTheme.lightBlue.withOpacity(0.7), fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                                // Access & Time
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: chipColor,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: chipTextColor.withOpacity(0.3), width: 1),
+                                      ),
+                                      child: Text(scanType, style: TextStyle(color: chipTextColor, fontWeight: FontWeight.bold, fontSize: 10)),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(_formatTimestamp(timestamp), style: TextStyle(color: AppTheme.white.withOpacity(0.6), fontSize: 11)),
+                                  ],
+                                ),
                               ],
                             ),
+                            
+                            // Authorization Footer
+                            if (adminName != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Divider(height: 1, color: AppTheme.white.withOpacity(0.1)),
+                              ),
+                              Row(
+                                children: [
+                                  Icon(Icons.verified_user_outlined, size: 14, color: AppTheme.accentBlue.withOpacity(0.7)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    "Authorized by: ", 
+                                    style: TextStyle(color: AppTheme.white.withOpacity(0.5), fontSize: 11)
+                                  ),
+                                  Text(
+                                    adminName, 
+                                    style: const TextStyle(color: AppTheme.accentBlue, fontSize: 11, fontWeight: FontWeight.w600)
+                                  ),
+                                ],
+                              ),
+                            ]
                           ],
                         ),
                       ),
