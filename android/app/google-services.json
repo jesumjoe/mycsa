@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "344329911586",
+    "firebase_url": "https://mycsa-2f0fc-default-rtdb.firebaseio.com",
+    "project_id": "mycsa-2f0fc",
+    "storage_bucket": "mycsa-2f0fc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:344329911586:android:1d693ae94d79657adcb97b",
+        "android_client_info": {
+          "package_name": "com.example.csaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDL2BkKK_7ujzOOGf9CjTyo-ZlOGIdAr30"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:344329911586:android:0b3a33a4bc51744adcb97b",
+        "android_client_info": {
+          "package_name": "com.example.nfcshi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDL2BkKK_7ujzOOGf9CjTyo-ZlOGIdAr30"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

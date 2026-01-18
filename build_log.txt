@@ -1,0 +1,26 @@
+Running Gradle task 'assembleRelease'...                        
+lib/screens/attendance_logs_screen.dart:88:10: Error: The method 'in_' isn't defined for the type 'PostgrestFilterBuilder<List<Map<String, dynamic>>>'.
+ - 'PostgrestFilterBuilder' is from 'package:postgrest/src/postgrest_builder.dart' ('/C:/Users/Jesu%20M%20Joe/AppData/Local/Pub/Cache/hosted/pub.dev/postgrest-2.6.0/lib/src/postgrest_builder.dart').
+ - 'List' is from 'dart:core'.
+ - 'Map' is from 'dart:core'.
+Try correcting the name to the name of an existing method, or defining a method named 'in_'.
+        .in_('registerNumber', regNumbers);
+         ^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildRelease'.
+> Process 'command 'C:\Users\Jesu M Joe\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 11s
+Running Gradle task 'assembleRelease'...                           11.7s
+Gradle task assembleRelease failed with exit code 1
