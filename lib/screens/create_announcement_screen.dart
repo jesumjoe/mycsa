@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart'; 
 import '../services/announcement_service.dart';
 import '../theme/app_theme.dart';
 
@@ -31,6 +32,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   
   File? _selectedImage;
   bool _isUploading = false;
+  DateTime? _deadline; // New
 
   final List<String> _campuses = ['BKC', 'CampusB', 'CampusC', 'CampusD'];
 
@@ -49,6 +51,30 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
     if (image != null) {
       setState(() => _selectedImage = File(image.path));
     }
+  }
+
+  Future<void> _pickDeadline() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context, 
+      initialDate: now, 
+      firstDate: now, 
+      lastDate: DateTime(2030),
+      builder: (context, child) => Theme(data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: AppTheme.accentBlue, surface: AppTheme.primaryNavy)), child: child!),
+    );
+    if (date == null) return;
+
+    if (!mounted) return;
+    final time = await showTimePicker(
+      context: context, 
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) => Theme(data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: AppTheme.accentBlue, surface: AppTheme.primaryNavy)), child: child!),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _deadline = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    });
   }
 
   Future<void> _submit() async {
@@ -70,6 +96,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
         isGlobal: _isGlobal,
         targetCampus: _isGlobal ? null : _targetCampus,
         imageUrl: imageUrl,
+        deadline: _deadline,
       );
 
       if (mounted) {
@@ -213,6 +240,44 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                 ),
               ),
               
+              const SizedBox(height: 24),
+
+              // 4.5 Deadline Picker (NEW)
+              const Text("Deadline / Expiry", style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: _pickDeadline,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryNavy,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Row(
+                    children: [
+                       Icon(Icons.calendar_today_rounded, color: _deadline == null ? Colors.white54 : AppTheme.accentBlue),
+                       const SizedBox(width: 12),
+                       Text(
+                         _deadline == null 
+                            ? "Set Deadline (Optional)" 
+                            : DateFormat('MMM d, yyyy - h:mm a').format(_deadline!),
+                         style: TextStyle(color: _deadline == null ? Colors.white54 : Colors.white),
+                       ),
+                       if (_deadline != null) ...[
+                         const Spacer(),
+                         IconButton(
+                           icon: const Icon(Icons.close, color: Colors.white54), 
+                           onPressed: () => setState(() => _deadline = null),
+                           padding: EdgeInsets.zero,
+                           constraints: const BoxConstraints(),
+                         )
+                       ]
+                    ],
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 40),
 
               // 5. Submit Button

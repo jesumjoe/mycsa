@@ -5,6 +5,8 @@ import 'login_screen.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'announcement_detail_screen.dart';
+import 'chat/chat_list_screen.dart';
 
 class VolunteerHomeScreen extends StatefulWidget {
   const VolunteerHomeScreen({super.key});
@@ -60,6 +62,12 @@ class _VolunteerHomeScreenState extends State<VolunteerHomeScreen> with SingleTi
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.send_rounded), 
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatListScreen()));
+            }
+          ),
           IconButton(icon: const Icon(Icons.logout), onPressed: () => _logout(context)),
         ],
         bottom: TabBar(
@@ -108,11 +116,20 @@ class _VolunteerHomeScreenState extends State<VolunteerHomeScreen> with SingleTi
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         
-        // Client-side filtering because OR conditions in Stream filters are tricky
+        // Client-side filtering: OR conditions + Deadline check
+        final now = DateTime.now();
         final allPosts = snapshot.data!;
         final myPosts = allPosts.where((post) {
            final isGlobal = post['is_global'] == true;
            final target = post['target_campus'];
+           
+           // Deadline Check (Disappearing Logic)
+           final deadlineStr = post['deadline'] as String?;
+           if (deadlineStr != null) {
+             final deadline = DateTime.parse(deadlineStr).toLocal();
+             if (deadline.isBefore(now)) return false; // Expired
+           }
+
            return isGlobal || target == _userCampus;
         }).toList();
 
@@ -134,7 +151,15 @@ class _VolunteerHomeScreenState extends State<VolunteerHomeScreen> with SingleTi
           itemCount: myPosts.length,
           itemBuilder: (context, index) {
             final post = myPosts[index];
-            return _buildPostCard(post, index);
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AnnouncementDetailScreen(announcement: post)),
+                );
+              },
+              child: _buildPostCard(post, index),
+            );
           },
         );
       },

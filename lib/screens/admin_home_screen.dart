@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../main.dart'; // Import for supabase client
 import 'attendance_logs_screen.dart'; // Import Attendance Logs Screen
+import 'chat/chat_list_screen.dart';
 import 'login_screen.dart'; // Import for logout navigation
 import 'nfc_scanner_screen.dart'; // <-- CORRECTED IMPORT
 import 'manage_volunteers_screen.dart';
 import 'create_announcement_screen.dart';
+import 'admin_inbox_screen.dart';
 import '../theme/app_theme.dart';
 
 class AdminHomeScreen extends StatelessWidget {
@@ -107,7 +109,21 @@ class AdminHomeScreen extends StatelessWidget {
                 ),
               ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0),
               
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
+              
+              // Inbox Shortcut (Messages)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () {
+                     Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatListScreen()));
+                  },
+                  icon: const Icon(Icons.send_rounded, color: AppTheme.accentBlue),
+                  label: const Text("My Messages", style: TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.bold)),
+                ),
+              ),
+
+              const SizedBox(height: 10),
               
               Text(
                 "Quick Actions",
@@ -135,6 +151,23 @@ class AdminHomeScreen extends StatelessWidget {
                       );
                     },
                     delay: 300,
+                  ),
+                  _buildPremiumActionCard(
+                    context,
+                    title: "Inbox",
+                    subtitle: "View Responses",
+                    icon: Icons.mark_email_unread_rounded,
+                    gradientColors: [Colors.purpleAccent, Colors.deepPurple],
+                    onTap: () {
+                         Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AdminInboxScreen(
+                           adminRole: role,
+                           adminCampusId: adminCampusId, // Used to filter inbox
+                        )),
+                      );
+                    },
+                    delay: 420,
                   ),
                   _buildPremiumActionCard(
                     context,

@@ -32,6 +32,7 @@ class AnnouncementService {
     required bool isGlobal,
     String? targetCampus,
     String? imageUrl,
+    DateTime? deadline, // New Field
   }) async {
     final user = supabase.auth.currentUser;
     if (user == null) throw Exception("User not logged in");
@@ -44,6 +45,7 @@ class AnnouncementService {
       'target_campus': targetCampus,
       'image_url': imageUrl,
       'author_uid': user.id,
+      'deadline': deadline?.toIso8601String(),
       'created_at': DateTime.now().toIso8601String(),
     });
   }

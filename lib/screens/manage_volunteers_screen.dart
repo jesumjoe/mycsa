@@ -76,7 +76,12 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
 
       final response = await query;
       final data = (response as List<dynamic>).cast<Map<String, dynamic>>();
-
+      
+      if (data.isNotEmpty) {
+        debugPrint("First user loaded: ${data.first['name']}");
+        debugPrint("Cohort Links sample: ${data.first['user_cohort_links']}");
+      }
+      
       setState(() {
         _allUsers = data;
         _applyFiltersAndSort();
@@ -127,9 +132,13 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
         return (a['campusId'] ?? '').compareTo(b['campusId'] ?? '');
       } else if (_currentSort == 'Cohort') {
          // Sort by first cohort name found
-         String cA = _getFirstCohort(a);
-         String cB = _getFirstCohort(b);
-         return cA.compareTo(cB);
+         final String cA = _getFirstCohort(a).toLowerCase();
+         final String cB = _getFirstCohort(b).toLowerCase();
+         int compare = cA.compareTo(cB);
+         if (compare == 0) {
+           return (a['name'] ?? '').toString().toLowerCase().compareTo((b['name'] ?? '').toString().toLowerCase());
+         }
+         return compare;
       }
       return 0;
     });
@@ -142,9 +151,10 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
   String _getFirstCohort(Map<String, dynamic> user) {
      final links = user['user_cohort_links'] as List<dynamic>?;
      if (links != null && links.isNotEmpty) {
-       return links.first['cohort_name'] as String;
+       final name = links.first['cohort_name']?.toString();
+       if (name != null && name.isNotEmpty) return name;
      }
-     return "Z"; // Push to bottom if no cohort
+     return "zzzz"; // Ensure strict bottom sorting
   }
 
   Color _getRoleColor(String role) {
