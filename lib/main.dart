@@ -7,12 +7,15 @@ import 'screens/volunteer_home_screen.dart';
 import 'package:flutter/services.dart';
 import 'theme/app_theme.dart';
 
+import 'core/app_config.dart';
+
 final supabase = Supabase.instance.client;
 
 /// ✅ MethodChannel talking to Android (MainActivity.kt)
 
 /// ✅ MethodChannel talking to Android (MainActivity.kt)
-const MethodChannel _nfcChannel = MethodChannel('com.example.csaapp/nfc_events');
+const MethodChannel _nfcChannel =
+    MethodChannel('com.example.csaapp/nfc_events');
 
 /// ✅ Global Stream Controller for NFC events
 final StreamController<String> _nfcController = StreamController.broadcast();
@@ -34,14 +37,13 @@ void initNfcListener() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Start listening to MethodChannel immediately
   initNfcListener();
 
   await Supabase.initialize(
-    url: "https://uzowcoxxhucpwdxqucrq.supabase.co",
-    anonKey:
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6b3djb3h4aHVjcHdkeHF1Y3JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1MDk4NzMsImV4cCI6MjA3NzA4NTg3M30.3w-NDuS20GOcMsy01FjNf5lDLSNCSOjJ0u1M-r_c0mw",
+    url: AppConfig.supabaseUrl,
+    anonKey: AppConfig.supabaseAnonKey,
   );
 
   runApp(const MyApp());
@@ -83,36 +85,39 @@ class _AuthWrapperState extends State<AuthWrapper> {
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()));
     } else {
-       // Logged in — check role for redirection
-       // Fetch role from DB
-       try {
-         final userData = await supabase
-          .from("users")
-          .select("role, campusId")
-          .eq("id", session.user.id)
-          .maybeSingle();
+      // Logged in — check role for redirection
+      // Fetch role from DB
+      try {
+        final userData = await supabase
+            .from("users")
+            .select("role, campusId")
+            .eq("id", session.user.id)
+            .maybeSingle();
 
-         if (!mounted) return;
+        if (!mounted) return;
 
-         final role = userData?["role"] ?? "Volunteer";
-         final campus = userData?["campusId"];
+        final role = userData?["role"] ?? "Volunteer";
+        final campus = userData?["campusId"];
 
-         if (role == "CohortRep" || role == "CampusHead" || role == "OverallHead") {
-             Navigator.of(context).pushReplacement(
-               MaterialPageRoute(builder: (_) => AdminHomeScreen(role: role, adminCampusId: campus)),
-             );
-         } else {
-             Navigator.of(context).pushReplacement(
-               MaterialPageRoute(builder: (_) => const VolunteerHomeScreen()),
-             );
-         }
-
-       } catch(e) {
-         // Error fetching role, maybe force logout or show login
-         if (!mounted) return;
-         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()));
-       }
+        if (role == "CohortRep" ||
+            role == "CampusHead" ||
+            role == "OverallHead") {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+                builder: (_) =>
+                    AdminHomeScreen(role: role, adminCampusId: campus)),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const VolunteerHomeScreen()),
+          );
+        }
+      } catch (e) {
+        // Error fetching role, maybe force logout or show login
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginScreen()));
+      }
     }
   }
 

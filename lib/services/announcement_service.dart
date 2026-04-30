@@ -3,21 +3,22 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart'; // supabase client
 
 class AnnouncementService {
-  
   /// Uploads an image file to the 'posters' bucket and returns the Public URL.
   /// Returns null if user cancels or upload fails.
   Future<String?> uploadPoster(File imageFile) async {
     try {
-      final String fileName = 'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final String fileName =
+          'poster_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final String path = 'public/$fileName';
 
       await supabase.storage.from('posters').upload(
-        path,
-        imageFile,
-        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-      );
+            path,
+            imageFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
 
-      final String publicUrl = supabase.storage.from('posters').getPublicUrl(path);
+      final String publicUrl =
+          supabase.storage.from('posters').getPublicUrl(path);
       return publicUrl;
     } catch (e) {
       throw Exception("Image upload failed: $e");
@@ -33,6 +34,7 @@ class AnnouncementService {
     String? targetCampus,
     String? imageUrl,
     DateTime? deadline, // New Field
+    String? targetClusterId, // New Field
   }) async {
     final user = supabase.auth.currentUser;
     if (user == null) throw Exception("User not logged in");
@@ -43,6 +45,7 @@ class AnnouncementService {
       'type': type,
       'is_global': isGlobal,
       'target_campus': targetCampus,
+      'target_cluster_id': targetClusterId,
       'image_url': imageUrl,
       'author_uid': user.id,
       'deadline': deadline?.toIso8601String(),

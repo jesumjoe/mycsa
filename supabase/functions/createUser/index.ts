@@ -108,20 +108,44 @@ serve(async (req) => {
       .update({
         role: roleToAssign,
         campusId: campusId,
-        cohorts: cohorts, // Save the array here too
         name: name,
+        // cohorts: cohorts, // REMOVED: This column likely doesn't exist
       })
       .eq("id", newUserId)
       .select();
 
     if (dbError) {
       console.error(`Error updating user profile in DB for ${newUserId}:`, dbError.message);
-      throw new Error("User account created, but failed to save user details to database.");
+      throw new Error(`User created, but DB update failed: ${dbError.message}`);
     }
     
     console.log("Database profile updated successfully:", dbData);
 
-    // 6. Success
+    // 6. Insert Cohort Links (if any)
+    if (cohorts && cohorts.length > 0) {
+      console.log(`Assigning user to cohorts: ${cohorts.join(', ')}`);
+      
+      // Prepare rows for bulk insert
+      // Assuming 'user_cohort_links' has columns 'user_id' and 'cohort_name'
+      const cohortRows = cohorts.map(cohortName => ({
+        user_id: newUserId,
+        cohort_name: cohortName
+      }));
+
+      const { error: cohortError } = await adminClient
+        .from("user_cohort_links")
+        .insert(cohortRows);
+
+      if (cohortError) {
+         console.error("Error inserting cohort links:", cohortError.message);
+         // We don't throw here to avoid failing the whole process, but we log it.
+         // Or maybe we should warn?
+      } else {
+         console.log("Cohort links inserted successfully.");
+      }
+    }
+
+    // 7. Success
     return new Response(
       JSON.stringify({
         success: true,

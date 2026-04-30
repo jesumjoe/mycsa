@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart'; // For texting
 import '../main.dart'; // supabase client
 import 'add_volunteer_dialog.dart';
+import 'attendance_logs_screen.dart'; // VIEW LOGS
 import '../theme/app_theme.dart';
 
 class ManageVolunteersScreen extends StatefulWidget {
@@ -29,7 +31,13 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
   String _selectedCohortFilter = 'All';
   String _currentSort = 'Role Priority'; // Default sort
 
-  final List<String> _campusOptions = ['All', 'BKC', 'CampusB', 'CampusC', 'CampusD'];
+  final List<String> _campusOptions = [
+    'All',
+    'BKC',
+    'CampusB',
+    'CampusC',
+    'CampusD'
+  ];
   final List<String> _allCohortOptions = [
     'All',
     'LP (Leader Panel)',
@@ -40,7 +48,7 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
     'Media & Advocacy',
     'Child Sponsorship Programme',
   ];
-  
+
   // Custom Role Hierarchy
   final Map<String, int> _rolePriority = {
     'Faculty': 0,
@@ -64,10 +72,11 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
 
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
-    
+
     try {
-      var query = supabase.from('users').select('*, user_cohort_links(cohort_name)');
-      
+      var query =
+          supabase.from('users').select('*, user_cohort_links(cohort_name)');
+
       // We fetch broadly and filter locally for maximum sorting flexibility
       // But we still apply basic security filters at DB level if possible
       if (widget.adminRole == 'CampusHead') {
@@ -76,18 +85,17 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
 
       final response = await query;
       final data = (response as List<dynamic>).cast<Map<String, dynamic>>();
-      
+
       if (data.isNotEmpty) {
         debugPrint("First user loaded: ${data.first['name']}");
         debugPrint("Cohort Links sample: ${data.first['user_cohort_links']}");
       }
-      
+
       setState(() {
         _allUsers = data;
         _applyFiltersAndSort();
         _isLoading = false;
       });
-      
     } catch (e) {
       debugPrint("Error fetching users: $e");
       setState(() => _isLoading = false);
@@ -105,16 +113,19 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
     // 2. Filter by Cohort / View
     if (_selectedCohortFilter == 'LP (Leader Panel)') {
       // Show only leaders
-      temp = temp.where((u) => ['CampusHead', 'CohortRep', 'OverallHead', 'Faculty'].contains(u['role'])).toList();
+      temp = temp
+          .where((u) => ['CampusHead', 'CohortRep', 'OverallHead', 'Faculty']
+              .contains(u['role']))
+          .toList();
     } else if (_selectedCohortFilter != 'All') {
       // Logic for filtering by specific cohort name using the joined list
       temp = temp.where((u) {
-         final links = u['user_cohort_links'] as List<dynamic>?;
-         if (links == null) return false;
-         return links.any((l) => l['cohort_name'] == _selectedCohortFilter);
+        final links = u['user_cohort_links'] as List<dynamic>?;
+        if (links == null) return false;
+        return links.any((l) => l['cohort_name'] == _selectedCohortFilter);
       }).toList();
     } else {
-      // 'All' view: generally we exclude Faculty/Heads if they are separate? 
+      // 'All' view: generally we exclude Faculty/Heads if they are separate?
       // User requirement implies mixing things. Let's keep everyone but allow sorting.
       // Or maybe filter out 'Volunteer' if user wants?
       // For now, 'All' shows everyone fetched.
@@ -131,14 +142,17 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
       } else if (_currentSort == 'Campus') {
         return (a['campusId'] ?? '').compareTo(b['campusId'] ?? '');
       } else if (_currentSort == 'Cohort') {
-         // Sort by first cohort name found
-         final String cA = _getFirstCohort(a).toLowerCase();
-         final String cB = _getFirstCohort(b).toLowerCase();
-         int compare = cA.compareTo(cB);
-         if (compare == 0) {
-           return (a['name'] ?? '').toString().toLowerCase().compareTo((b['name'] ?? '').toString().toLowerCase());
-         }
-         return compare;
+        // Sort by first cohort name found
+        final String cA = _getFirstCohort(a).toLowerCase();
+        final String cB = _getFirstCohort(b).toLowerCase();
+        int compare = cA.compareTo(cB);
+        if (compare == 0) {
+          return (a['name'] ?? '')
+              .toString()
+              .toLowerCase()
+              .compareTo((b['name'] ?? '').toString().toLowerCase());
+        }
+        return compare;
       }
       return 0;
     });
@@ -147,23 +161,28 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
       _filteredUsers = temp;
     });
   }
-  
+
   String _getFirstCohort(Map<String, dynamic> user) {
-     final links = user['user_cohort_links'] as List<dynamic>?;
-     if (links != null && links.isNotEmpty) {
-       final name = links.first['cohort_name']?.toString();
-       if (name != null && name.isNotEmpty) return name;
-     }
-     return "zzzz"; // Ensure strict bottom sorting
+    final links = user['user_cohort_links'] as List<dynamic>?;
+    if (links != null && links.isNotEmpty) {
+      final name = links.first['cohort_name']?.toString();
+      if (name != null && name.isNotEmpty) return name;
+    }
+    return "zzzz"; // Ensure strict bottom sorting
   }
 
   Color _getRoleColor(String role) {
     switch (role) {
-      case 'Faculty': return Colors.amber;
-      case 'OverallHead': return Colors.purpleAccent;
-      case 'CampusHead': return Colors.cyanAccent;
-      case 'CohortRep': return AppTheme.accentBlue;
-      default: return AppTheme.white.withOpacity(0.7);
+      case 'Faculty':
+        return Colors.amber;
+      case 'OverallHead':
+        return Colors.purpleAccent;
+      case 'CampusHead':
+        return Colors.cyanAccent;
+      case 'CohortRep':
+        return AppTheme.accentBlue;
+      default:
+        return AppTheme.white.withOpacity(0.7);
     }
   }
 
@@ -176,10 +195,13 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppTheme.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Manage Team", style: TextStyle(color: AppTheme.white, fontWeight: FontWeight.bold)),
+        title: const Text("Manage Team",
+            style:
+                TextStyle(color: AppTheme.white, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.sort_rounded, color: AppTheme.lightBlue),
@@ -191,17 +213,23 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
         children: [
           _buildFilterHeader(),
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue))
-              : _filteredUsers.isEmpty 
-                  ? Center(child: Text("No members found", style: TextStyle(color: AppTheme.white.withOpacity(0.5))))
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      itemCount: _filteredUsers.length,
-                      itemBuilder: (context, index) {
-                        return _buildTeamCard(_filteredUsers[index], index);
-                      },
-                    ),
+            child: _isLoading
+                ? const Center(
+                    child:
+                        CircularProgressIndicator(color: AppTheme.accentBlue))
+                : _filteredUsers.isEmpty
+                    ? Center(
+                        child: Text("No members found",
+                            style: TextStyle(
+                                color: AppTheme.white.withOpacity(0.5))))
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        itemCount: _filteredUsers.length,
+                        itemBuilder: (context, index) {
+                          return _buildTeamCard(_filteredUsers[index], index);
+                        },
+                      ),
           ),
         ],
       ),
@@ -227,7 +255,8 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.primaryNavy.withOpacity(0.5),
-        border: Border(bottom: BorderSide(color: AppTheme.white.withOpacity(0.05))),
+        border:
+            Border(bottom: BorderSide(color: AppTheme.white.withOpacity(0.05))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,12 +294,18 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
       ),
     );
   }
-  
-  Widget _buildDropdown({required String value, required List<String> items, required String label, required Function(String?) onChanged}) {
+
+  Widget _buildDropdown(
+      {required String value,
+      required List<String> items,
+      required String label,
+      required Function(String?) onChanged}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: AppTheme.lightBlue.withOpacity(0.7), fontSize: 10)),
+        Text(label,
+            style: TextStyle(
+                color: AppTheme.lightBlue.withOpacity(0.7), fontSize: 10)),
         const SizedBox(height: 4),
         Container(
           height: 44,
@@ -286,8 +321,11 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
               isExpanded: true,
               dropdownColor: AppTheme.primaryNavy,
               style: const TextStyle(color: AppTheme.white, fontSize: 13),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.accentBlue),
-              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  color: AppTheme.accentBlue),
+              items: items
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -296,14 +334,39 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
     );
   }
 
+  Future<void> _launchSMS(String? phone) async {
+    if (phone == null || phone.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('No phone number available for this user')),
+        );
+      }
+      return;
+    }
+    final Uri smsLaunchUri = Uri(
+      scheme: 'sms',
+      path: phone,
+    );
+    try {
+      await launchUrl(smsLaunchUri);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch SMS: $e')),
+        );
+      }
+    }
+  }
+
   Widget _buildTeamCard(Map<String, dynamic> user, int index) {
     final name = user['name'] ?? 'Unknown';
     final role = user['role'] ?? 'Unknown';
     final regNo = user['registerNumber'] ?? '';
     final campus = user['campusId'] ?? '';
     final links = user['user_cohort_links'] as List<dynamic>?;
-    String cohorts = (links != null && links.isNotEmpty) 
-        ? links.map((l) => l['cohort_name']).join(", ") 
+    String cohorts = (links != null && links.isNotEmpty)
+        ? links.map((l) => l['cohort_name']).join(", ")
         : "No Cohort";
 
     return Container(
@@ -311,7 +374,9 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
       decoration: BoxDecoration(
         color: AppTheme.primaryNavy,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
@@ -319,40 +384,100 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
           backgroundColor: _getRoleColor(role).withOpacity(0.2),
           child: Text(
             name.isNotEmpty ? name[0].toUpperCase() : '?',
-            style: TextStyle(color: _getRoleColor(role), fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: _getRoleColor(role), fontWeight: FontWeight.bold),
           ),
         ),
-        title: Text(name, style: const TextStyle(color: AppTheme.white, fontWeight: FontWeight.w600)),
+        title: Text(name,
+            style: const TextStyle(
+                color: AppTheme.white, fontWeight: FontWeight.w600)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-             Row(
-               children: [
-                 Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                   decoration: BoxDecoration(
-                     color: _getRoleColor(role).withOpacity(0.1),
-                     borderRadius: BorderRadius.circular(8),
-                     border: Border.all(color: _getRoleColor(role).withOpacity(0.3), width: 0.5)
-                   ),
-                   child: Text(
-                     role == 'CampusHead' ? 'Campus Amb' : role, // Display Alias
-                     style: TextStyle(color: _getRoleColor(role), fontSize: 10, fontWeight: FontWeight.w500),
-                   ),
-                 ),
-                 const SizedBox(width: 8),
-                 Text("| $campus", style: TextStyle(color: AppTheme.white.withOpacity(0.5), fontSize: 12)),
-               ],
-             ),
-             if (role == 'Volunteer' || role == 'CohortRep') 
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(cohorts, style: TextStyle(color: AppTheme.white.withOpacity(0.4), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                )
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: _getRoleColor(role).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: _getRoleColor(role).withOpacity(0.3),
+                          width: 0.5)),
+                  child: Text(
+                    role == 'CampusHead' ? 'Campus Amb' : role, // Display Alias
+                    style: TextStyle(
+                        color: _getRoleColor(role),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text("| $campus",
+                    style: TextStyle(
+                        color: AppTheme.white.withOpacity(0.5), fontSize: 12)),
+              ],
+            ),
+            if (role == 'Volunteer' || role == 'CohortRep')
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(cohorts,
+                    style: TextStyle(
+                        color: AppTheme.white.withOpacity(0.4), fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              )
           ],
         ),
-        trailing: Icon(Icons.more_vert_rounded, color: AppTheme.white.withOpacity(0.3)),
+        trailing: PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert_rounded,
+              color: AppTheme.white.withOpacity(0.3)),
+          color: AppTheme.primaryNavy,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onSelected: (value) {
+            if (value == 'logs') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AttendanceLogsScreen(
+                    role: widget.adminRole,
+                    targetRegisterNumber: user['registerNumber'],
+                    campusId: widget.adminCampusId,
+                  ),
+                ),
+              );
+            } else if (value == 'text') {
+              // Try 'phone' or 'phoneNumber' or 'mobile'
+              // Assuming 'phone' is the key based on typical schema, but check if user map has it
+              _launchSMS(user['phone'] ?? user['phoneNumber']);
+            }
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'logs',
+              child: Row(
+                children: [
+                  Icon(Icons.history, color: AppTheme.accentBlue, size: 20),
+                  SizedBox(width: 10),
+                  Text('View Logs', style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'text',
+              child: Row(
+                children: [
+                  Icon(Icons.sms, color: AppTheme.accentBlue, size: 20),
+                  SizedBox(width: 10),
+                  Text('Text Member', style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     ).animate().fadeIn(delay: (index * 50).ms).slideX();
   }
@@ -361,7 +486,8 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.backgroundDark,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(24),
@@ -369,7 +495,11 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Sort By", style: TextStyle(color: AppTheme.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text("Sort By",
+                  style: TextStyle(
+                      color: AppTheme.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               _buildSortOption('Role Priority'),
               _buildSortOption('Name (A-Z)'),
@@ -393,13 +523,20 @@ class _ManageVolunteersScreenState extends State<ManageVolunteersScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppTheme.white.withOpacity(0.05))),
+          border: Border(
+              bottom: BorderSide(color: AppTheme.white.withOpacity(0.05))),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(color: isSelected ? AppTheme.accentBlue : AppTheme.white.withOpacity(0.8), fontSize: 16)),
-            if (isSelected) const Icon(Icons.check, color: AppTheme.accentBlue, size: 20),
+            Text(label,
+                style: TextStyle(
+                    color: isSelected
+                        ? AppTheme.accentBlue
+                        : AppTheme.white.withOpacity(0.8),
+                    fontSize: 16)),
+            if (isSelected)
+              const Icon(Icons.check, color: AppTheme.accentBlue, size: 20),
           ],
         ),
       ),

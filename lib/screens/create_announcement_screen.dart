@@ -1,22 +1,25 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 import '../services/announcement_service.dart';
 import '../theme/app_theme.dart';
 
 class CreateAnnouncementScreen extends StatefulWidget {
   final String adminRole;
   final String? adminCampusId;
+  final String? targetClusterId; // NEW: For cluster-specific announcements
 
   const CreateAnnouncementScreen({
     super.key,
     required this.adminRole,
     this.adminCampusId,
+    this.targetClusterId,
   });
 
   @override
-  State<CreateAnnouncementScreen> createState() => _CreateAnnouncementScreenState();
+  State<CreateAnnouncementScreen> createState() =>
+      _CreateAnnouncementScreenState();
 }
 
 class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
@@ -29,7 +32,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   String _type = 'Event'; // Default
   String _targetCampus = 'All'; // Default for global if allowed
   bool _isGlobal = true;
-  
+
   File? _selectedImage;
   bool _isUploading = false;
   DateTime? _deadline; // New
@@ -40,7 +43,12 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   void initState() {
     super.initState();
     // Enforce permissions on init
-    if (widget.adminRole != 'OverallHead') {
+    if (widget.targetClusterId != null) {
+      // If posting to a cluster, it's not global and not campus specific in the usual sense
+      // The backend should handle 'target_cluster_id' separately
+      _isGlobal = false;
+      _targetCampus = 'Cluster'; // Visual placeholder or specific handling?
+    } else if (widget.adminRole != 'OverallHead') {
       _isGlobal = false;
       _targetCampus = widget.adminCampusId ?? 'BKC';
     }
@@ -56,24 +64,33 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
   Future<void> _pickDeadline() async {
     final now = DateTime.now();
     final date = await showDatePicker(
-      context: context, 
-      initialDate: now, 
-      firstDate: now, 
+      context: context,
+      initialDate: now,
+      firstDate: now,
       lastDate: DateTime(2030),
-      builder: (context, child) => Theme(data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: AppTheme.accentBlue, surface: AppTheme.primaryNavy)), child: child!),
+      builder: (context, child) => Theme(
+          data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                  primary: AppTheme.accentBlue, surface: AppTheme.primaryNavy)),
+          child: child!),
     );
     if (date == null) return;
 
     if (!mounted) return;
     final time = await showTimePicker(
-      context: context, 
+      context: context,
       initialTime: TimeOfDay.now(),
-      builder: (context, child) => Theme(data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: AppTheme.accentBlue, surface: AppTheme.primaryNavy)), child: child!),
+      builder: (context, child) => Theme(
+          data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                  primary: AppTheme.accentBlue, surface: AppTheme.primaryNavy)),
+          child: child!),
     );
     if (time == null) return;
 
     setState(() {
-      _deadline = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      _deadline =
+          DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });
   }
 
@@ -95,6 +112,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
         type: _type,
         isGlobal: _isGlobal,
         targetCampus: _isGlobal ? null : _targetCampus,
+        targetClusterId: widget.targetClusterId, // NEW
         imageUrl: imageUrl,
         deadline: _deadline,
       );
@@ -161,7 +179,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                decoration: _inputDecoration("Description").copyWith(alignLabelWithHint: true),
+                decoration: _inputDecoration("Description")
+                    .copyWith(alignLabelWithHint: true),
                 style: const TextStyle(color: Colors.white),
                 maxLines: 4,
                 validator: (v) => v!.isEmpty ? "Required" : null,
@@ -171,7 +190,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
 
               // 3. Image Picker (Only for Events)
               if (_type == 'Event') ...[
-                const Text("Event Poster", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                const Text("Event Poster",
+                    style: TextStyle(color: Colors.grey, fontSize: 13)),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: _pickImage,
@@ -182,17 +202,21 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                       color: AppTheme.primaryNavy,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.white12),
-                      image: _selectedImage != null 
-                        ? DecorationImage(image: FileImage(_selectedImage!), fit: BoxFit.cover)
-                        : null,
+                      image: _selectedImage != null
+                          ? DecorationImage(
+                              image: FileImage(_selectedImage!),
+                              fit: BoxFit.cover)
+                          : null,
                     ),
                     child: _selectedImage == null
                         ? const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.add_photo_alternate_outlined, color: AppTheme.accentBlue, size: 32),
+                              Icon(Icons.add_photo_alternate_outlined,
+                                  color: AppTheme.accentBlue, size: 32),
                               SizedBox(height: 8),
-                              Text("Upload Poster", style: TextStyle(color: AppTheme.accentBlue)),
+                              Text("Upload Poster",
+                                  style: TextStyle(color: AppTheme.accentBlue)),
                             ],
                           )
                         : null,
@@ -202,7 +226,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
               ],
 
               // 4. Audience Settings
-              const Text("Audience", style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const Text("Audience",
+                  style: TextStyle(color: Colors.grey, fontSize: 13)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -213,37 +238,52 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                 ),
                 child: Column(
                   children: [
-                     SwitchListTile(
-                       activeColor: AppTheme.accentBlue,
-                       contentPadding: EdgeInsets.zero,
-                       title: const Text("Global Announcement", style: TextStyle(color: Colors.white)),
-                       subtitle: const Text("Post to all campuses", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                       value: _isGlobal, 
-                       onChanged: canToggleGlobal 
-                          ? (val) => setState(() => _isGlobal = val) 
+                    SwitchListTile(
+                      activeColor: AppTheme.accentBlue,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text("Global Announcement",
+                          style: TextStyle(color: Colors.white)),
+                      subtitle: const Text("Post to all campuses",
+                          style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      value: _isGlobal,
+                      onChanged: canToggleGlobal
+                          ? (val) {
+                              setState(() {
+                                _isGlobal = val;
+                                if (!_isGlobal &&
+                                    !_campuses.contains(_targetCampus)) {
+                                  _targetCampus = _campuses.first;
+                                }
+                              });
+                            }
                           : null, // Lock for CampusHeads
-                     ),
-                     if (!_isGlobal) ...[
-                       const Divider(color: Colors.white12),
-                       DropdownButtonFormField<String>(
-                         value: _targetCampus,
-                         dropdownColor: AppTheme.primaryNavy,
-                         style: const TextStyle(color: Colors.white),
-                         decoration: const InputDecoration(border: InputBorder.none),
-                         items: _campuses.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                         onChanged: canToggleGlobal 
+                    ),
+                    if (!_isGlobal) ...[
+                      const Divider(color: Colors.white12),
+                      DropdownButtonFormField<String>(
+                        value: _targetCampus,
+                        dropdownColor: AppTheme.primaryNavy,
+                        style: const TextStyle(color: Colors.white),
+                        decoration:
+                            const InputDecoration(border: InputBorder.none),
+                        items: _campuses
+                            .map((c) =>
+                                DropdownMenuItem(value: c, child: Text(c)))
+                            .toList(),
+                        onChanged: canToggleGlobal
                             ? (val) => setState(() => _targetCampus = val!)
                             : null, // Read-only for CampusHeads (locked to own campus)
-                       ),
-                     ]
+                      ),
+                    ]
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
 
               // 4.5 Deadline Picker (NEW)
-              const Text("Deadline / Expiry", style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const Text("Deadline / Expiry",
+                  style: TextStyle(color: Colors.grey, fontSize: 13)),
               const SizedBox(height: 8),
               InkWell(
                 onTap: _pickDeadline,
@@ -256,23 +296,30 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                   ),
                   child: Row(
                     children: [
-                       Icon(Icons.calendar_today_rounded, color: _deadline == null ? Colors.white54 : AppTheme.accentBlue),
-                       const SizedBox(width: 12),
-                       Text(
-                         _deadline == null 
-                            ? "Set Deadline (Optional)" 
-                            : DateFormat('MMM d, yyyy - h:mm a').format(_deadline!),
-                         style: TextStyle(color: _deadline == null ? Colors.white54 : Colors.white),
-                       ),
-                       if (_deadline != null) ...[
-                         const Spacer(),
-                         IconButton(
-                           icon: const Icon(Icons.close, color: Colors.white54), 
-                           onPressed: () => setState(() => _deadline = null),
-                           padding: EdgeInsets.zero,
-                           constraints: const BoxConstraints(),
-                         )
-                       ]
+                      Icon(Icons.calendar_today_rounded,
+                          color: _deadline == null
+                              ? Colors.white54
+                              : AppTheme.accentBlue),
+                      const SizedBox(width: 12),
+                      Text(
+                        _deadline == null
+                            ? "Set Deadline (Optional)"
+                            : DateFormat('MMM d, yyyy - h:mm a')
+                                .format(_deadline!),
+                        style: TextStyle(
+                            color: _deadline == null
+                                ? Colors.white54
+                                : Colors.white),
+                      ),
+                      if (_deadline != null) ...[
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white54),
+                          onPressed: () => setState(() => _deadline = null),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        )
+                      ]
                     ],
                   ),
                 ),
@@ -288,11 +335,16 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
                   onPressed: _isUploading ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.accentBlue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: _isUploading 
+                  child: _isUploading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Text("Post $_type", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+                      : Text("Post $_type",
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black)),
                 ),
               ),
             ],
@@ -312,17 +364,19 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.accentBlue : AppTheme.primaryNavy,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? AppTheme.accentBlue : Colors.white10),
+          border: Border.all(
+              color: isSelected ? AppTheme.accentBlue : Colors.white10),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? Colors.black : Colors.white, size: 20),
+            Icon(icon,
+                color: isSelected ? Colors.black : Colors.white, size: 20),
             const SizedBox(width: 8),
-            Text(label, style: TextStyle(
-              color: isSelected ? Colors.black : Colors.white,
-              fontWeight: FontWeight.bold
-            )),
+            Text(label,
+                style: TextStyle(
+                    color: isSelected ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -335,7 +389,8 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
       labelStyle: const TextStyle(color: Colors.grey),
       filled: true,
       fillColor: AppTheme.primaryNavy,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       contentPadding: const EdgeInsets.all(16),
     );
   }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'admin_home_screen.dart';
 import 'volunteer_home_screen.dart';
+import 'faculty_home_screen.dart';
 import 'dart:async';
 import '../main.dart' show nfcStream, supabase;
 import '../theme/app_theme.dart';
@@ -33,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _snackScheduled = false; 
+        _snackScheduled = false;
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -41,7 +42,8 @@ class _LoginScreenState extends State<LoginScreen> {
             duration: const Duration(seconds: 1),
             backgroundColor: AppTheme.accentBlue,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       });
@@ -65,8 +67,12 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => loading = true);
 
     try {
+      final email = _roll.text.trim().contains('@')
+          ? _roll.text.trim()
+          : "${_roll.text.trim()}@csa.app";
+
       final res = await supabase.auth.signInWithPassword(
-        email: "${_roll.text.trim()}@csa.app",
+        email: email,
         password: _pass.text.trim(),
       );
 
@@ -81,7 +87,19 @@ class _LoginScreenState extends State<LoginScreen> {
       final role = userData?["role"] ?? "Volunteer";
       final campus = userData?["campusId"];
 
-      if (role == "CohortRep" || role == "CampusHead" || role == "OverallHead") {
+      if (role == "Faculty") {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FacultyHomeScreen(
+              facultyName: userData?["name"] ?? "Faculty",
+              campusId: campus,
+            ),
+          ),
+        );
+      } else if (role == "CohortRep" ||
+          role == "CampusHead" ||
+          role == "OverallHead") {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -119,7 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -140,7 +159,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         )
                       ],
                     ),
-                    child: const Icon(Icons.mic, size: 50, color: AppTheme.paleBlue), // Mic icon from WeTalk ref
+                    child: const Icon(Icons.mic,
+                        size: 50,
+                        color: AppTheme.paleBlue), // Mic icon from WeTalk ref
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -148,17 +169,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   "Login to Your Account",
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.white,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.white,
+                      ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   "Enter your credentials or scan your card",
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.lightBlue,
-                  ),
+                        color: AppTheme.lightBlue,
+                      ),
                 ),
                 const SizedBox(height: 48),
 
@@ -178,31 +199,63 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: "Password",
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(showPass ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(
+                          showPass ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setState(() => showPass = !showPass),
                     ),
                   ),
                 ),
-                
+
                 // Remember me & Forgot Password (Visual only for now)
+                const SizedBox(height: 10),
+                // Remember me & Forgot Password
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: true, 
-                          onChanged: (_) {},
-                          fillColor: WidgetStateProperty.all(AppTheme.accentBlue),
-                        ),
-                        Text("Remember me", style: TextStyle(color: AppTheme.lightBlue)),
-                      ],
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: Checkbox(
+                              value: true,
+                              onChanged: (_) {},
+                              activeColor: AppTheme.accentBlue,
+                              fillColor:
+                                  WidgetStateProperty.all(AppTheme.accentBlue),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text("Remember me",
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: AppTheme.lightBlue)),
+                          ),
+                        ],
+                      ),
                     ),
                     TextButton(
-                      onPressed: () {},
-                      child: Text("Forgot password?", style: TextStyle(color: AppTheme.accentBlue)),
-                    )
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                "Please contact your Campus Head to reset password"),
+                            backgroundColor: AppTheme.accentBlue,
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                      child: Text("Forgot password?",
+                          style: TextStyle(color: AppTheme.accentBlue)),
+                    ),
                   ],
                 ),
 
@@ -216,11 +269,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         : const Text("Sign In"),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
                 const Divider(color: AppTheme.primaryNavy),
                 const SizedBox(height: 20),
-                
+
                 // Social Login placeholders (Visual)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -231,12 +284,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                 Text(
+                Text(
                   "Use NFC or Biometrics",
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.lightBlue.withOpacity(0.5),
-                  ),
+                        color: AppTheme.lightBlue.withOpacity(0.5),
+                      ),
                 ),
               ],
             ),

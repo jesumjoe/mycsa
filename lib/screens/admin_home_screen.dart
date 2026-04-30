@@ -1,13 +1,15 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; // Fix for Colors, Icons, etc.
 import 'package:flutter_animate/flutter_animate.dart';
 import '../main.dart'; // Import for supabase client
 import 'attendance_logs_screen.dart'; // Import Attendance Logs Screen
-import 'chat/chat_list_screen.dart';
 import 'login_screen.dart'; // Import for logout navigation
 import 'nfc_scanner_screen.dart'; // <-- CORRECTED IMPORT
 import 'manage_volunteers_screen.dart';
 import 'create_announcement_screen.dart';
 import 'admin_inbox_screen.dart';
+import 'coming_soon_dialog.dart'; // Import Coming Soon Dialog
+import 'clusters/clusters_screen.dart'; // Import Clusters Screen
+import 'report_submission_screen.dart';
 import '../theme/app_theme.dart';
 
 class AdminHomeScreen extends StatelessWidget {
@@ -78,14 +80,18 @@ class AdminHomeScreen extends StatelessWidget {
                         children: [
                           Text(
                             "Welcome back,",
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: AppTheme.paleBlue.withOpacity(0.8),
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: AppTheme.paleBlue.withOpacity(0.8),
+                                    ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             role,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.white,
                                 ),
@@ -102,37 +108,46 @@ class AdminHomeScreen extends StatelessWidget {
                           color: AppTheme.white.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.logout, color: AppTheme.white, size: 24),
+                        child: const Icon(Icons.logout,
+                            color: AppTheme.white, size: 24),
                       ),
                     ),
                   ],
                 ),
               ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0),
-              
+
               const SizedBox(height: 20),
-              
+
               // Inbox Shortcut (Messages)
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatListScreen()));
+                    // Navigator.push(
+                    //     context,
+                    //     MaterialPageRoute(
+                    //         builder: (context) => const ChatListScreen()));
+                    showComingSoonDialog(context);
                   },
-                  icon: const Icon(Icons.send_rounded, color: AppTheme.accentBlue),
-                  label: const Text("My Messages", style: TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.send_rounded,
+                      color: AppTheme.accentBlue),
+                  label: const Text("My Messages",
+                      style: TextStyle(
+                          color: AppTheme.accentBlue,
+                          fontWeight: FontWeight.bold)),
                 ),
               ),
 
               const SizedBox(height: 10),
-              
+
               Text(
                 "Quick Actions",
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppTheme.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: AppTheme.white,
+                      fontWeight: FontWeight.bold,
+                    ),
               ).animate().fadeIn(delay: 200.ms).slideX(),
-              
+
               const SizedBox(height: 20),
 
               // Vertically Staggered List
@@ -147,7 +162,8 @@ class AdminHomeScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => NfcScannerPage()),
+                        MaterialPageRoute(
+                            builder: (context) => NfcScannerPage()),
                       );
                     },
                     delay: 300,
@@ -159,12 +175,14 @@ class AdminHomeScreen extends StatelessWidget {
                     icon: Icons.mark_email_unread_rounded,
                     gradientColors: [Colors.purpleAccent, Colors.deepPurple],
                     onTap: () {
-                         Navigator.push(
+                      Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => AdminInboxScreen(
-                           adminRole: role,
-                           adminCampusId: adminCampusId, // Used to filter inbox
-                        )),
+                        MaterialPageRoute(
+                            builder: (context) => AdminInboxScreen(
+                                  adminRole: role,
+                                  adminCampusId:
+                                      adminCampusId, // Used to filter inbox
+                                )),
                       );
                     },
                     delay: 420,
@@ -174,7 +192,10 @@ class AdminHomeScreen extends StatelessWidget {
                     title: "Attendance Logs",
                     subtitle: "View history and export reports",
                     icon: Icons.history,
-                    gradientColors: [const Color(0xFF4A6fa5), const Color(0xFF6B8cb3)],
+                    gradientColors: [
+                      const Color(0xFF4A6fa5),
+                      const Color(0xFF6B8cb3)
+                    ],
                     onTap: () {
                       Navigator.push(
                         context,
@@ -195,12 +216,13 @@ class AdminHomeScreen extends StatelessWidget {
                     icon: Icons.campaign_rounded,
                     gradientColors: [Colors.orange, Colors.deepOrange],
                     onTap: () {
-                       Navigator.push(
+                      Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => CreateAnnouncementScreen(
-                          adminRole: role,
-                          adminCampusId: adminCampusId,
-                        )),
+                        MaterialPageRoute(
+                            builder: (context) => CreateAnnouncementScreen(
+                                  adminRole: role,
+                                  adminCampusId: adminCampusId,
+                                )),
                       );
                     },
                     delay: 450,
@@ -210,7 +232,10 @@ class AdminHomeScreen extends StatelessWidget {
                     title: "Manage Volunteers",
                     subtitle: "Add or remove team members",
                     icon: Icons.people_outline,
-                    gradientColors: [const Color(0xFF2d4e75), const Color(0xFF43658f)],
+                    gradientColors: [
+                      const Color(0xFF2d4e75),
+                      const Color(0xFF43658f)
+                    ],
                     onTap: () {
                       Navigator.push(
                         context,
@@ -224,6 +249,46 @@ class AdminHomeScreen extends StatelessWidget {
                       );
                     },
                     delay: 500,
+                  ),
+                  _buildPremiumActionCard(
+                    context,
+                    title: "My Clusters",
+                    subtitle: "Manage teams & specific groups",
+                    icon: Icons.groups_rounded,
+                    gradientColors: [
+                      const Color(0xFF1A2980),
+                      const Color(0xFF26D0CE)
+                    ],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ClustersScreen(role: role),
+                        ),
+                      );
+                    },
+                    delay: 550,
+                  ),
+                  _buildPremiumActionCard(
+                    context,
+                    title: "Submit Report",
+                    subtitle: "Send monthly report to Faculty",
+                    icon: Icons.upload_file_rounded,
+                    gradientColors: [
+                      const Color(0xFF11998e),
+                      const Color(0xFF38ef7d)
+                    ],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReportSubmissionScreen(
+                            campusId: adminCampusId ?? "",
+                          ),
+                        ),
+                      );
+                    },
+                    delay: 600,
                   ),
                 ],
               ),
@@ -309,12 +374,16 @@ class AdminHomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: AppTheme.white.withOpacity(0.3)),
+                Icon(Icons.chevron_right_rounded,
+                    color: AppTheme.white.withOpacity(0.3)),
               ],
             ),
           ),
         ),
       ),
-    ).animate().fadeIn(delay: delay.ms).slideX(begin: 0.1, end: 0, curve: Curves.easeOutQuad);
+    )
+        .animate()
+        .fadeIn(delay: delay.ms)
+        .slideX(begin: 0.1, end: 0, curve: Curves.easeOutQuad);
   }
 }
